@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Translation Machine - ML Gladiators</title>
+    <!-- Removed Font Awesome since we're using image-based icons -->
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: row;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh; /* Full viewport height */
+            overflow: hidden; /* Prevent body scrolling */
+        }
+        /* Sidebar Styles */
+        .sidebar {
+            flex: 0 0 200px;
+            background-color: #fff;
+            padding: 20px;
+            margin-right: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+            height: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            margin-bottom: 10px;
+            font-size: 15px;
+            text-align: left;
+        }
+        .filter-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .filter-option input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+        .filter-option label {
+            cursor: pointer;
+            font-size: 14px;
+        }
+        /* Main Container Styles */
+        .main-container {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+            height: 100%;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+            width: 880px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .left-section {
+            text-align: center;
+            flex: 0 0 100px;
+        }
+        /* Removed logo from left-section */
+        .right-section {
+            text-align: left;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex: 1;
+            position: relative; /* To enable positioning of bottom controls */
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .right-section h1 {
+            margin: 0;
+            font-size: 16px;
+            flex: 2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* Model Selection Styles */
+        .model-select {
+            flex: 1;
+        }
+        .model-select select {
+            padding: 8px;
+            font-size: 14px;
+            width: 100%;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        /* Bottom Controls Container */
+        .bottom-controls {
+            flex: 3;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: auto; /* Pushes this container to the bottom */
+            width: 100%;
+            max-width: none; /* Adjust as needed */
+        }
+        /* File Input Styles */
+        .file-input {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .file-input input[type="file"] {
+            display: none;
+        }
+        .file-input label {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 24px;
+            line-height: 24px;
+            text-align: center;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-input label img {
+            width: 15px;
+            height: 15px;
+        }
+        .file-input span {
+            margin-left: 10px;
+            font-size: 14px;
+            flex: 1; /* Allow the span to take remaining space */
+        }
+        /* Control Buttons Styles */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }
+        .controls button {
+            padding: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            width: 10px;
+            height: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease;
+            flex: 1; /* Make buttons stretch to fill available space */
+            max-width: 50px; /* Maintain uniform size */
+        }
+        .controls button img {
+            width: 10px;
+            height: 10px;
+        }
+        .controls button:hover {
+            background-color: #f0f0f0;
+        }
+        .controls button:focus {
+            outline: 2px solid #2196F3;
+            outline-offset: 2px;
+        }
+        /* Translation Result Styles */
+        #translationResult {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            width: 890px;
+            max-height: 100%;
+            overflow: auto;
+            position: relative; /* For potential future absolute positioning */
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 400px;
+            position: relative;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+            /* Added styles for sticky header */
+            position: sticky;
+            top: 0;
+            background-color: #f4f4f4; /* Ensures the header has a background */
+            z-index: 2; /* Keeps the header above the table body */
+        }
+        td {
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        tr:hover {
+            background-color: #FF7043;
+            color: white;
+        }
+        /* Spinner Styles */
+        .spinner {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Translation Container Styles */
+        .translation-container {
+            flex: 1;
+            margin-left: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+            height: 100%;
+            position: relative; /* To contain the logo */
+        }
+        .input-section, .output-section {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .input-section h2, .output-section h2 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .input-section textarea {
+            width: 280px;
+            height: 100px;
+            padding: 10px;
+            resize: vertical;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .output-section #outputText {
+            width: 280px;
+            min-height: 100px;
+            padding: 10px;
+            resize: vertical;
+            background-color: #e0f7e0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        /* Translate Button */
+        .translate-button {
+            padding: 8px 16px;
+            font-size: 14px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .translate-button:hover {
+            background-color: #388e3c;
+        }
+        .translate-button:focus {
+            outline: 2px solid #2196F3;
+            outline-offset: 2px;
+        }
+        /* Logo in Translation Container */
+        .translation-container img.logo {
+            width: 200px; /* Adjust size as needed */
+            height: 200px; /* Adjust size as needed */
+            object-fit: cover;
+        }
+        /* Responsive Logo */
+        @media (max-width: 768px) {
+            .translation-container img.logo {
+                width: 80px;
+                height: 80px;
+            }
+            .bottom-controls {
+                max-width: 100%;
+                gap: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .translation-container img.logo {
+                width: 60px;
+                height: 60px;
+            }
+            .bottom-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="spinner" id="spinner"></div> <!-- Spinner element -->
+    
+    <!-- Sidebar for Filters -->
+    <div class="sidebar">
+        <h2>Filter Models</h2>
+        <div class="filter-option">
+            <input type="checkbox" id="filterAll" checked>
+            <label for="filterAll">All Models</label>
+        </div>
+        <div class="filter-option">
+            <input type="checkbox" id="filterRNN" class="model-filter" value="rnn" checked>
+            <label for="filterRNN">RNN</label>
+        </div>
+        <div class="filter-option">
+            <input type="checkbox" id="filterLSTM" class="model-filter" value="lstm" checked>
+            <label for="filterLSTM">LSTM</label>
+        </div>
+        <div class="filter-option">
+            <input type="checkbox" id="filterLLM" class="model-filter" value="llm" checked>
+            <label for="filterLLM">LLM</label>
+        </div>
+        <div class="filter-option">
+            <input type="checkbox" id="filterMT5" class="model-filter" value="mt5" checked>
+            <label for="filterMT5">MT5</label>
+        </div>
+        <div class="filter-option">
+            <input type="checkbox" id="filterBART" class="model-filter" value="bart" checked>
+            <label for="filterBART">BART</label>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <div class="container">
+            <!-- Removed Left Logo from here -->
+            
+            <!-- Center Section with the Input and Controls -->
+            <div class="right-section">
+                <h1>Translation Machine - ML Gladiators</h1>
+                <!-- Model Selection -->
+                <div class="model-select">
+                    <select id="modelSelect" aria-label="Select Translation Model">
+                        <option value="" disabled selected>Select Model</option>
+                        <option value="mt5">MT5</option>
+                        <option value="rnn">RNN</option>
+                        <option value="lstm">LSTM</option>
+                        <option value="llm">LLM</option>
+                        <option value="bart">BART</option>
+                    </select>
+                </div>
+                <!-- Bottom Controls Container -->
+                <div class="bottom-controls">
+                    <!-- File Input -->
+                    <div class="file-input">
+                        <label for="srtFile" aria-label="Add SRT File">
+                            <img src="http://127.0.0.1:5000/static/plus.png" alt="Add">
+                        </label>
+                        <input type="file" id="srtFile" accept=".srt" onchange="displayFileName()">
+                        <span id="placeholder">Select an SRT file...</span>
+                    </div>
+                    <!-- Control Buttons -->
+                    <div class="controls">
+                        <button class="play" onclick="startTranslation()" aria-label="Start Translation">
+                            <img src="http://127.0.0.1:5000/static/play.png" alt="Play">
+                        </button>
+                        <button class="pause" onclick="pauseTranslation()" aria-label="Pause Translation">
+                            <img src="http://127.0.0.1:5000/static/pause.png" alt="Pause">
+                        </button>
+                        <button class="resume" onclick="resumeTranslation()" aria-label="Resume Translation">
+                            <img src="http://127.0.0.1:5000/static/play-and-pause-button.png" alt="Resume">
+                        </button>
+                        <button class="stop" onclick="stopTranslation()" aria-label="Stop Translation">
+                            <img src="http://127.0.0.1:5000/static/stop-button.png" alt="Stop">
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Translation Result Container (Table) -->
+        <div id="translationResult" class="table-container">
+            <table>
+                <thead id="tableHead">
+                    <tr>
+                        <th>Index</th>
+                        <th>Original Text</th>
+                        <!-- Translation columns will be added dynamically -->
+                    </tr>
+                </thead>
+                <tbody id="translationBody"></tbody>
+            </table>
+            <!-- Removed logo from here -->
+        </div>
+    </div>
+    
+    <!-- Translation Container on the Right -->
+    <div class="translation-container">
+        <!-- Input Text Area -->
+        <div class="input-section">
+            <h2>Enter Text to Translate</h2>
+            <textarea id="inputText" placeholder="Type your text here..."></textarea>
+        </div>
+        <!-- Model Selection -->
+        <div class="model-select">
+            <select id="modelSelectText" aria-label="Select Text Translation Model">
+                <option value="" disabled selected>Select Model</option>
+                <option value="mt5">MT5</option>
+                <option value="rnn">RNN</option>
+                <option value="lstm">LSTM</option>
+                <option value="llm">LLM</option>
+                <option value="bart">BART</option>
+            </select>
+        </div>
+        <!-- Output Text Area -->
+        <div class="output-section">
+            <h2>Translated Text</h2>
+            <div id="outputText"></div>
+        </div>
+        <!-- Translate Button -->
+        <button class="translate-button" onclick="translateText()">Translate</button>
+        <!-- Logo Positioned at Bottom of Translation Container -->
+        <img src="http://127.0.0.1:5000/static/rahnema_college.png" alt="Logo" class="logo">
+    </div>
+    
+    <script>
+    let translationColumns = {}; // Keep track of added translation columns
+    let eventSource = null; // EventSource for SRT translation
+    let isPaused = false; // Pause flag
+    let bufferedData = []; // Buffer to store data when paused
+    
+    // Function to display selected file name
+    function displayFileName() {
+        const fileInput = document.getElementById("srtFile");
+        const placeholder = document.getElementById("placeholder");
+        
+        if (fileInput.files.length > 0) {
+            placeholder.textContent = fileInput.files[0].name;
+        } else {
+            placeholder.textContent = "Select an SRT file...";
+        }
+    }
+    
+    // Show spinner
+    function showSpinner() {
+        document.getElementById("spinner").style.display = "block";
+    }
+    
+    // Hide spinner
+    function hideSpinner() {
+        document.getElementById("spinner").style.display = "none";
+    }
+    
+    // Start translation process
+    function startTranslation() {
+        const fileInput = document.getElementById("srtFile");
+        if (fileInput.files.length === 0) {
+            alert("Please select an SRT file first.");
+            return;
+        }
+    
+        const modelType = document.getElementById("modelSelect").value;
+        if (!modelType) {
+            alert("Please select a model.");
+            return;
+        }
+    
+        if (!translationColumns[modelType]) {
+            addTranslationColumn(modelType);
+            translationColumns[modelType] = true;
+            updateFilterCheckboxes();
+        }
+    
+        // Reset pause and buffer
+        isPaused = false;
+        bufferedData = [];
+    
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+    
+        showSpinner();
+    
+        fetch(`/upload_file`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(() => {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+    
+            // Capture the modelType locally
+            const currentModelTypeForEvent = modelType;
+    
+            eventSource = new EventSource(`/translate_line/${currentModelTypeForEvent}`);
+    
+            eventSource.onmessage = function(event) {
+                if (isPaused) {
+                    bufferedData.push({ data: event.data, modelType: currentModelTypeForEvent });
+                } else {
+                    processTranslationData(event.data, currentModelTypeForEvent);
+                }
+            };
+    
+            eventSource.onerror = function() {
+                eventSource.close();
+                eventSource = null;
+                hideSpinner();
+            };
+    
+            eventSource.onopen = function() {
+                hideSpinner();
+            };
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to translate');
+            hideSpinner();
+        });
+    }
+    
+    // Pause translation
+    function pauseTranslation() {
+        isPaused = true;
+    }
+    
+    // Resume translation
+    function resumeTranslation() {
+        if (!isPaused) return;
+        isPaused = false;
+        bufferedData.forEach(item => processTranslationData(item.data, item.modelType));
+        bufferedData = [];
+    }
+    
+    // Stop translation
+    function stopTranslation() {
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+        isPaused = false;
+        bufferedData = [];
+    }
+    
+    // Process incoming translation data
+    function processTranslationData(data, modelType) {
+        const parsedData = JSON.parse(data);
+        const translationBody = document.getElementById("translationBody");
+    
+        // Check if the row for this index already exists
+        let row = document.getElementById(`row-${parsedData.index}`);
+        if (!row) {
+            row = document.createElement('tr');
+            row.id = `row-${parsedData.index}`;
+            
+            // Create index and original text cells
+            const indexCell = document.createElement('td');
+            indexCell.className = 'index';
+            indexCell.innerText = parsedData.index;
+            const originalTextCell = document.createElement('td');
+            originalTextCell.className = 'original-text';
+            originalTextCell.innerText = parsedData.original_text;
+            row.appendChild(indexCell);
+            row.appendChild(originalTextCell);
+    
+            // Add empty cells for all existing models except the current one
+            for (let existingModel in translationColumns) {
+                if (existingModel !== modelType) {
+                    const td = document.createElement('td');
+                    td.className = 'translated-text';
+                    td.setAttribute('data-model', existingModel);
+                    td.innerText = ''; // Initialize as empty
+                    row.appendChild(td);
+                }
+            }
+    
+            // Add the cell for the current model
+            const cell = document.createElement('td');
+            cell.className = 'translated-text';
+            cell.setAttribute('data-model', modelType);
+            cell.innerText = parsedData.translated_text;
+            row.appendChild(cell);
+    
+            translationBody.appendChild(row);
+        } else {
+            // Find or create the cell for this model
+            let cell = row.querySelector(`td.translated-text[data-model="${modelType}"]`);
+            if (!cell) {
+                cell = document.createElement('td');
+                cell.className = 'translated-text';
+                cell.setAttribute('data-model', modelType);
+                cell.innerText = parsedData.translated_text;
+                row.appendChild(cell);
+            } else {
+                cell.innerText = parsedData.translated_text;
+            }
+        }
+    
+        translationBody.scrollTop = translationBody.scrollHeight;
+    }
+    
+    // Add a new translation column to the table
+    function addTranslationColumn(modelType) {
+        const tableHead = document.getElementById('tableHead');
+        const headerRow = tableHead.rows[0];
+        const th = document.createElement('th');
+        th.innerText = modelType.toUpperCase();
+        th.setAttribute('data-model', modelType);
+        headerRow.appendChild(th);
+    
+        const translationBody = document.getElementById("translationBody");
+        const rows = translationBody.rows;
+        for (let i = 0; i < rows.length; i++) {
+            const td = document.createElement('td');
+            td.className = 'translated-text';
+            td.setAttribute('data-model', modelType);
+            td.innerText = ''; // Initialize as empty
+            rows[i].appendChild(td);
+        }
+    }
+    
+    // Translate text in the right container
+    function translateText() {
+        const text = document.getElementById("inputText").value.trim();
+        if (!text) {
+            alert("Please enter text to translate.");
+            return;
+        }
+        const modelType = document.getElementById("modelSelectText").value;
+        if (!modelType) {
+            alert("Please select a model.");
+            return;
+        }
+    
+        showSpinner();
+    
+        fetch(`/translate_text/${modelType}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("outputText").innerText = data.translated_text;
+            hideSpinner();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById("outputText").innerText = 'Failed to translate';
+            hideSpinner();
+        });
+    }
+    
+    // Update filter checkboxes based on available translation columns
+    function updateFilterCheckboxes() {
+        const models = Object.keys(translationColumns);
+        models.forEach(model => {
+            const checkbox = document.querySelector(`.model-filter[value="${model}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+    }
+    
+    // Handle filter changes
+    document.addEventListener('DOMContentLoaded', () => {
+        const filterAll = document.getElementById('filterAll');
+        const modelFilters = document.querySelectorAll('.model-filter');
+    
+        // Event listener for 'All Models' checkbox
+        filterAll.addEventListener('change', function() {
+            if (this.checked) {
+                modelFilters.forEach(checkbox => {
+                    checkbox.checked = true;
+                    checkbox.disabled = true;
+                });
+                showAllModelColumns();
+            } else {
+                modelFilters.forEach(checkbox => {
+                    checkbox.disabled = false;
+                });
+                filterTableColumns();
+            }
+        });
+    
+        // Event listeners for individual model checkboxes
+        modelFilters.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (!this.checked) {
+                    filterAll.checked = false;
+                } else {
+                    const allChecked = Array.from(modelFilters).every(cb => cb.checked);
+                    if (allChecked) {
+                        filterAll.checked = true;
+                        modelFilters.forEach(cb => cb.disabled = true);
+                    }
+                }
+                filterTableColumns();
+            });
+        });
+    });
+    
+    // Show all model columns
+    function showAllModelColumns() {
+        const tableHead = document.getElementById('tableHead');
+        const ths = tableHead.querySelectorAll('th[data-model]');
+        ths.forEach(th => {
+            th.style.display = '';
+        });
+    
+        const translationBody = document.getElementById("translationBody");
+        const rows = translationBody.rows;
+        for (let row of rows) {
+            const tds = row.querySelectorAll('td[data-model]');
+            tds.forEach(td => {
+                td.style.display = '';
+            });
+        }
+    }
+    
+    // Filter table columns based on selected checkboxes
+    function filterTableColumns() {
+        const selectedModels = Array.from(document.querySelectorAll('.model-filter:checked')).map(cb => cb.value);
+    
+        const tableHead = document.getElementById('tableHead');
+        const ths = tableHead.querySelectorAll('th');
+    
+        // Hide all model columns first
+        ths.forEach(th => {
+            const model = th.getAttribute('data-model');
+            if (model) {
+                if (selectedModels.includes(model)) {
+                    th.style.display = '';
+                } else {
+                    th.style.display = 'none';
+                }
+            }
+        });
+    
+        const translationBody = document.getElementById("translationBody");
+        const rows = translationBody.rows;
+        for (let row of rows) {
+            const tds = row.querySelectorAll('td');
+            tds.forEach(td => {
+                const model = td.getAttribute('data-model');
+                if (model) {
+                    if (selectedModels.includes(model)) {
+                        td.style.display = '';
+                    } else {
+                        td.style.display = 'none';
+                    }
+                }
+            });
+        }
+    }
+    
+    </script>
+</body>
+</html>
